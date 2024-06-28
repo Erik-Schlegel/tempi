@@ -30,8 +30,8 @@
       sudo apt purge ^librtlsdr
       sudo rm -rvf /usr/lib/librtlsdr* /usr/include/rtl-sdr* /usr/local/lib/librtlsdr* /usr/local/include/rtl-sdr* /usr/local/include/rtl_* /usr/local/bin/rtl_*
 
-      # Install RTL-SDR Drivers
-      sudo apt install libusb-1.0-0-dev git cmake pkg-config build-essential libtool autoconf python3
+      # Install RTL-SDR Requirements
+      sudo apt install -y libusb-1.0-0-dev git cmake pkg-config build-essential libtool autoconf
 
       git clone https://github.com/rtlsdrblog/rtl-sdr-blog
       cd rtl-sdr-blog && mkdir build && cd build
@@ -42,14 +42,52 @@
       sudo ldconfig
       echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
 
+      # Install rtl_433 stuff
       cd ~/
       git clone https://github.com/merbanan/rtl_433.git
       cd rtl_433/ && mkdir build && cd build
       cmake ..
       make
       sudo make install
+
+      # Install Software to run Tempi and do notifications
+      sudo apt install -y python3 docker.io
+      sudo mkdir /etc/ntfy
+      sudo wget -P /etc/ntfy https://raw.githubusercontent.com/binwiederhier/ntfy/main/server/server.yml
+      sudo nano /etc/ntfy/server.yml
+      # modify two lines:
+      # uncomment base-url
+      # set base-url value to: http://<yourip>
+      # upstream-base-url
+      # close server.yml
       ```
-3. Test
+3. Install notification app on mobile device
+   - Open App Store or Google Play
+   - Search for and install Ntfy app
+   - Go to settings and set default server to 192.168.1.22
+   - Subscribe to the "tempi" topic
+
+
+   ```sh
+      #sudo docker run -p 80:80 -td binwiederhier/ntfy serve
+      sudo docker run -v /var/cache/ntfy:/var/cache/ntfy -v /etc/ntfy:/etc/ntfy -p 80:80 -itd binwiederhier/ntfy serve --cache-file /var/cache/ntfy/cache.db
+
+      # To see what docker containers are running
+      sudo docker ps
+
+      # To see all docker containers running or not
+      sudo docker ps -a
+
+      # To stop a docker container
+      sudo docker stop <container_id>
+
+      # To stop all docker containers
+      sudo docker stop $(sudo docker ps -q)
+
+      # To see any error logs for a particular container
+      sudo docker logs <container_id>
+      ```
+4. Test
    - Power cycle device
    - Plug in RTL-SDR dongle
    - **Test Data Decryption**

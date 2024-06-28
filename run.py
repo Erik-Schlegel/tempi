@@ -130,10 +130,29 @@ def main():
             if is_current_precedent_changed():
                 update_current_precedent("actual")
                 if current_precedent and message_count < MAX_DAILY_MESSAGES:
+                    message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if current_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
+
+                    subprocess.run(
+                        [
+                            "curl",
+                            "-d",
+                            "lr's warmer than outside",
+                            "localhost/tempi",
+                        ]
+                    )
+
                     print(
                         f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is warmer than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
                     )
                 else:
+                    subprocess.run(
+                        [
+                            "curl",
+                            "-d",
+                            "lr's cooler than outside",
+                            "localhost/tempi",
+                        ]
+                    )
                     print(
                         f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is cooler than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
                     )
