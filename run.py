@@ -108,7 +108,7 @@ def main():
                 "H20": data["humidity"],
             }
 
-            # print("\033c", end="")  # clear the screen
+            print("\033c", end="")  # clear the screen
             for channel in CHANNELS:
                 if channel in current_data:
                     print(
