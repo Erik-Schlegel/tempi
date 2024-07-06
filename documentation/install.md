@@ -2,37 +2,31 @@
 
 1. Prep
    - Keep RTL-SDR dongle unplugged
+   - If setting up a new Pi OS install in "Raspberry Pi Imager" it's preferable to use:
+      Operating System > Choose OS > Raspberry Pi OS (other) > Raspberry Pi OS Lite (64-bit)
+   - Once the device is booted go to your router's web interface and find the ip address assigned to your pi.
+   - open a terminal and `ssh <ip_address_here>`
    - Update system
       ```sh
       sudo apt update
       sudo apt upgrade
       ```
-    - Setup Bluetooth Stuff (optional, for FM testing)
+   - Increase max current supplied to usb devices.
       ```sh
-      bluetoothctl
-      power on
-      agent on
-      default-agent
-      scan on
-      # wait for target device to show
-      # e.g. Raycons -- 98:47:44:33:97:DF
-      pair <_mac_address_>
-      trust <_mac_address_> #allow auto-reconnect
-      connect <_mac_address_>
-      scan off
-      quit
+      CONFIG_LINE='usb_max_current_enable=1'
+      if ! grep -q "$CONFIG_LINE" /boot/firmware/config.txt; then
+        echo "$CONFIG_LINE" | sudo tee --append /boot/firmware/config.txt > /dev/null
+      fi
       ```
 2. Setup Drivers & Software
    - Run these lines individually:
       ```sh
-      # Remove conflicting drivers
-      echo 'usb_max_current_enable=1' | sudo tee --append /boot/firmware/config.txt
+      # Remove default drivers which are known to conflict
       sudo apt purge ^librtlsdr
       sudo rm -rvf /usr/lib/librtlsdr* /usr/include/rtl-sdr* /usr/local/lib/librtlsdr* /usr/local/include/rtl-sdr* /usr/local/include/rtl_* /usr/local/bin/rtl_*
 
       # Install RTL-SDR Requirements
       sudo apt install -y libusb-1.0-0-dev git cmake pkg-config build-essential libtool autoconf
-
       git clone https://github.com/rtlsdrblog/rtl-sdr-blog
       cd rtl-sdr-blog && mkdir build && cd build
       cmake ../ -DINSTALL_UDEV_RULES=ON
@@ -42,7 +36,7 @@
       sudo ldconfig
       echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
 
-      # Install rtl_433 stuff
+      # Install rtl_433--a project which decodes rf data signals.
       cd ~/
       git clone https://github.com/merbanan/rtl_433.git
       cd rtl_433/ && mkdir build && cd build
@@ -55,6 +49,7 @@
       sudo mkdir /etc/ntfy
       sudo wget -P /etc/ntfy https://raw.githubusercontent.com/binwiederhier/ntfy/main/server/server.yml
       sudo nano /etc/ntfy/server.yml
+
       # modify two lines:
       # uncomment base-url
       # set base-url value to: http://<yourip>
@@ -70,7 +65,7 @@
 
    ```sh
       #sudo docker run -p 80:80 -td binwiederhier/ntfy serve
-      sudo docker run -v /var/cache/ntfy:/var/cache/ntfy -v /etc/ntfy:/etc/ntfy -p 80:80 -itd binwiederhier/ntfy serve --cache-file /var/cache/ntfy/cache.db
+      sudo docker run -v /var/cache/ntfy:/var/cache/ntfy -v /etc/ntfy:/etc/ntfy -p 80:80 binwiederhier/ntfy serve --cache-file /var/cache/ntfy/cache.db
 
       # To see what docker containers are running
       sudo docker ps
@@ -96,3 +91,12 @@
       ```sh
       rtl_fm -f 90.1M -M wfm -s 2400000 -r 96000 | aplay -r 96000 -f S16_LE
       ```
+
+5. Make ntfy message available externally
+   - The above creates a setup which notifies devices only when they're connected to the same network. e.g.: Client devices running ntfy connect directly to the local ip.
+   - To make notifications available externally, we'll set up a [cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
+   - This involves:
+     - installing docker on the server to which messages will be published
+     - logging in to cloudflare and creating a 'cloudflared tunnel' installed with docker.
+     - installing the docker image (cmd is created by cloudflare)
+     - running the
