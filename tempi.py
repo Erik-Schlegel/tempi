@@ -46,8 +46,8 @@ def is_current_precedent_changed():
 
 
 def update_current_precedent(status="init"):
-    print("in update_current_precedent")
-    print("status", status)
+    # print("in update_current_precedent")
+    # print("status", status)
 
     global current_precedent
     # print("current_precedent before", current_precedent)

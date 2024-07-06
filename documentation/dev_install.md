@@ -1,40 +1,62 @@
-# Install Tempi
+# Install
 
-1. Preparation
+1. Prep
    - Keep RTL-SDR dongle unplugged
-   - If setting up a new Pi OS install in "Raspberry Pi Imager" it's preferable to use the following, if you don't need a desktop or ui apps:
-      Operating System → Choose OS → Raspberry Pi OS (other) → Raspberry Pi OS Lite (64-bit)
-   - Once booted go to your router's web interface and find the ip address assigned to your pi.
-   - It is highly advised to have your router reserve an ip for your pi, otherwise you'll have to lookup the ip each time things (pi and/or router) reboot.
-   - Open a terminal and `ssh <pi_ipaddress_here>`
-
-1. Installation
+   - If setting up a new Pi OS install in "Raspberry Pi Imager" it's preferable to use:
+      Operating System > Choose OS > Raspberry Pi OS (other) > Raspberry Pi OS Lite (64-bit)
+   - Once the device is booted go to your router's web interface and find the ip address assigned to your pi.
+   - open a terminal and `ssh <ip_address_here>`
+   - Update system
       ```sh
-      # Run these commands individually!
-
-      sudo apt update && sudo apt upgrade
-      CONFIG_LINE='usb_max_current_enable=1'; if ! grep -q "$CONFIG_LINE" /boot/firmware/config.txt; then echo "$CONFIG_LINE" | sudo tee --append /boot/firmware/config.txt > /dev/null; fi
-      sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-      curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
-      echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
+      sudo apt update
+      sudo apt upgrade
       ```
+   - Increase max current supplied to usb devices.
+      ```sh
+      CONFIG_LINE='usb_max_current_enable=1'
+      if ! grep -q "$CONFIG_LINE" /boot/firmware/config.txt; then
+        echo "$CONFIG_LINE" | sudo tee --append /boot/firmware/config.txt > /dev/null
+      fi
+      ```
+2. Setup Drivers & Software
+   - Run these lines individually:
+      ```sh
+      # Remove default drivers which are known to conflict
+      sudo apt purge ^librtlsdr
+      sudo rm -rvf /usr/lib/librtlsdr* /usr/include/rtl-sdr* /usr/local/lib/librtlsdr* /usr/local/include/rtl-sdr* /usr/local/include/rtl_* /usr/local/bin/rtl_*
 
-1. Setup Notification Stuff
-   - Install Software to run Tempi and do notifications
+      # Install RTL-SDR Requirements
+      sudo apt install -y libusb-1.0-0-dev git cmake pkg-config build-essential libtool autoconf
+      git clone https://github.com/rtlsdrblog/rtl-sdr-blog
+      cd rtl-sdr-blog && mkdir build && cd build
+      cmake ../ -DINSTALL_UDEV_RULES=ON
+      make
+      sudo make install
+      sudo cp ../rtl-sdr.rules /etc/udev/rules.d/
+      sudo ldconfig
+      echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
+
+      # Install rtl_433--a project which decodes rf data signals.
+      cd ~/
+      git clone https://github.com/merbanan/rtl_433.git
+      cd rtl_433/ && mkdir build && cd build
+      cmake ..
+      make
+      sudo make install
+
+      # Install Software to run Tempi and do notifications
       sudo apt install -y python3 docker.io
       sudo mkdir /etc/ntfy
       sudo wget -P /etc/ntfy https://raw.githubusercontent.com/binwiederhier/ntfy/main/server/server.yml
       sudo nano /etc/ntfy/server.yml
 
-      ```bash
       # modify two lines:
       # uncomment base-url
       # set base-url value to: http://<yourip>
       # upstream-base-url
       # close server.yml
       ```
-
-1. Install notification app on mobile device
+3. Install notification app on mobile device
    - Open App Store or Google Play
    - Search for and install Ntfy app
    - Go to settings and set default server to 192.168.1.22
@@ -60,7 +82,6 @@
       # To see any error logs for a particular container
       sudo docker logs <container_id>
       ```
-
 4. Test
    - Power cycle device
    - Plug in RTL-SDR dongle
