@@ -2,80 +2,42 @@
 
 1. Preparation
    - Keep RTL-SDR dongle unplugged
-   - If setting up a new Pi OS install in "Raspberry Pi Imager" it's preferable to use the following, if you don't need a desktop or ui apps:
+   - If setting up a new Pi OS install in "Raspberry Pi Imager" it's preferable to use the following, if you don't need to run a desktop or GUI based apps:
       Operating System → Choose OS → Raspberry Pi OS (other) → Raspberry Pi OS Lite (64-bit)
-   - Once booted go to your router's web interface and find the ip address assigned to your pi.
-   - It is highly advised to have your router reserve an ip for your pi, otherwise you'll have to lookup the ip each time things (pi and/or router) reboot.
-   - Open a terminal and `ssh <pi_ipaddress_here>`
+   - Once your pi boots go to your router's web interface and find the ip address assigned to your pi.
+   - It is highly advised to have your router reserve an ip for your pi, otherwise you'll have to lookup the ip each time your pi or router boots.
+   - Open a terminal and `ssh <your_ip_address>`
 
 1. Installation
-      ```sh
-      # Run these commands individually!
-
-      sudo apt update && sudo apt upgrade
-      CONFIG_LINE='usb_max_current_enable=1'; if ! grep -q "$CONFIG_LINE" /boot/firmware/config.txt; then echo "$CONFIG_LINE" | sudo tee --append /boot/firmware/config.txt > /dev/null; fi
-      sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-      curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh
-      echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
-      ```
-
-1. Setup Notification Stuff
-   - Install Software to run Tempi and do notifications
-      sudo apt install -y python3 docker.io
-      sudo mkdir /etc/ntfy
-      sudo wget -P /etc/ntfy https://raw.githubusercontent.com/binwiederhier/ntfy/main/server/server.yml
-      sudo nano /etc/ntfy/server.yml
-
       ```bash
-      # modify two lines:
-      # uncomment base-url
-      # set base-url value to: http://<yourip>
-      # upstream-base-url
-      # close server.yml
+      sudo apt update && sudo apt upgrade && \
+         CONFIG_LINE='usb_max_current_enable=1' && \
+         if ! grep -q "$CONFIG_LINE" /boot/firmware/config.txt; then echo "$CONFIG_LINE" | sudo tee --append /boot/firmware/config.txt > /dev/null; fi && \
+         sudo apt install -y apt-transport-https ca-certificates curl software-properties-common && curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && \
+         echo 'blacklist dvb_usb_rtl28xxu' | sudo tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
       ```
-
+1. Power cycle your Raspberry Pi
+1. Plug in RTL-SDR Dongle
 1. Install notification app on mobile device
    - Open App Store or Google Play
-   - Search for and install Ntfy app
-   - Go to settings and set default server to 192.168.1.22
-   - Subscribe to the "tempi" topic
-
-
-   ```sh
-      #sudo docker run -p 80:80 -td binwiederhier/ntfy serve
-      sudo docker run -v /var/cache/ntfy:/var/cache/ntfy -v /etc/ntfy:/etc/ntfy -p 80:80 binwiederhier/ntfy serve --cache-file /var/cache/ntfy/cache.db
-
-      # To see what docker containers are running
-      sudo docker ps
-
-      # To see all docker containers running or not
-      sudo docker ps -a
-
-      # To stop a docker container
-      sudo docker stop <container_id>
-
-      # To stop all docker containers
-      sudo docker stop $(sudo docker ps -q)
-
-      # To see any error logs for a particular container
-      sudo docker logs <container_id>
-      ```
-
-4. Test
-   - Power cycle device
-   - Plug in RTL-SDR dongle
-   - **Test Data Decryption**
-      `rtl_433 -f 915000000 -F json` should take ~ 15 seconds at most for data to show.
-   - **Test FM (optional)** Attempt to play local FM station, e.g. 90.1 FM.
-      ```sh
-      rtl_fm -f 90.1M -M wfm -s 2400000 -r 96000 | aplay -r 96000 -f S16_LE
-      ```
-
-5. Make ntfy message available externally
-   - The above creates a setup which notifies devices only when they're connected to the same network. e.g.: Client devices running ntfy connect directly to the local ip.
-   - To make notifications available externally, we'll set up a [cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
-   - This involves:
-     - installing docker on the server to which messages will be published
-     - logging in to cloudflare and creating a 'cloudflared tunnel' installed with docker.
-     - installing the docker image (cmd is created by cloudflare)
-     - running the
+   - Install "Ntfy App"
+   - Open the app and subscribe to a topic
+     - click + icon
+     - Subscribe to topic "tempi"
+     - Click "use another server"
+     - In the service Url box, replace `"https://ntfy.sh"` with `http://<your_ip_address>`
+         <div style="background-color:#DEDBEE; padding: 7px 10px; border-radius: 5px;">
+         <h4>NOTE:</h4>
+         <ul>
+         <li>
+            You won't receive tempi push notifications while using mobile data connection. Why?
+            Because you just specified an ip address which is only reachable while you are connected to your network.
+         </li>
+         <li>
+            If you need to receive notifications anywhere, you can do so by creating a tunnel which points to your raspberry pi's ip. Recommended tools are <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/">cloudflared</a> or <a href="https://ngrok.com/docs/getting-started/">ngrok</a>
+         </li>
+         <li>
+            Once the tunnel is established you will have a public url like <code>http://123456.ngrok.io/tempi</code> to which which you can point your Ntfy App.
+         </li>
+         </div>
+1. Run the app -- see the "Run" section in the [main readme](../README.md#run)

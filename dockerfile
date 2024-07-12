@@ -2,7 +2,7 @@
 FROM alpine:latest AS build
 WORKDIR /tempi
 
-# Install dependencies
+# Install dependencies to build the image
 RUN apk update && apk add --no-cache \
   git \
   cmake \
@@ -42,7 +42,7 @@ RUN git clone https://github.com/merbanan/rtl_433.git && \
 FROM alpine:latest
 WORKDIR /tempi
 
-# Copy the build artifacts from the first stage
+# Copy build artifacts from the first stage
 COPY --from=build /usr/local /usr/local
 COPY --from=build /etc/udev/rules.d/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules
 COPY --from=build /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
@@ -51,9 +51,19 @@ COPY --from=build /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf /etc/modprobe.
 RUN apk update && apk add --no-cache \
   python3 \
   py3-pip \
-  libusb
+  libusb \
+  tzdata
+
+# Setup ntfy
+ENV version=2.11.0
+ENV filename="ntfy_${version}_linux_arm64.tar.gz"
+RUN wget https://github.com/binwiederhier/ntfy/releases/download/v$version/$filename -O ntfy.tar.gz && \
+  mkdir -p ntfy && tar -xzf ntfy.tar.gz --strip-components=1 -C ntfy && \
+  cp -a ntfy/ntfy /usr/bin/ntfy && \
+  mkdir -p /etc/ntfy && cp -a ntfy/client/*.yml /etc/ntfy && cp -a ntfy/server/*.yml /etc/ntfy && \
+  rm ntfy.tar.gz && rm -rf ntfy
 
 # Copy the application files
 COPY . /tempi
 
-CMD ["python3", "tempi.py"]
+CMD ["sh", "-c", "./start.sh"]

@@ -1,5 +1,7 @@
 import subprocess
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 MAX_DAILY_MESSAGES = 10
 
@@ -8,7 +10,6 @@ current_data = {}
 current_precedent = None
 
 CHANNELS = {
-    1: "Music Room",
     2: "Living Room",
     3: "Bedroom",
     4: "Garage",
@@ -58,12 +59,25 @@ def update_current_precedent(status="init"):
         return
 
     current_precedent = channel_low["Temp"] > channel_high["Temp"]
-    # print("current_precedent after", current_precedent)
 
 
 def main():
     previous_data_in = None
     message_count = 0
+
+    current_time = datetime.now(ZoneInfo("America/Los_Angeles")).strftime(
+        "%b %d, %y %H:%M:%S"
+    )
+    subprocess.run(
+        [
+            "wget",
+            "--post-data",
+            f"Tempi Started at { datetime.now(ZoneInfo('America/Los_Angeles')).strftime('%b %d, %y %H:%M:%S') }",
+            "http://localhost/tempi",
+            "-O",
+            "-",
+        ]
+    )
 
     process = subprocess.Popen(
         ["rtl_433", "-f", "915000000", "-F", "json"],
@@ -131,13 +145,14 @@ def main():
                 update_current_precedent("actual")
                 if current_precedent and message_count < MAX_DAILY_MESSAGES:
                     message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if current_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
-
                     subprocess.run(
                         [
-                            "curl",
-                            "-d",
-                            "lr's warmer than outside",
-                            "localhost/tempi",
+                            "wget",
+                            "--post-data",
+                            "living room is warmer than outside",
+                            "http://localhost/tempi",
+                            "-O",
+                            "-",
                         ]
                     )
 
@@ -147,10 +162,12 @@ def main():
                 else:
                     subprocess.run(
                         [
-                            "curl",
-                            "-d",
-                            "lr's cooler than outside",
-                            "localhost/tempi",
+                            "wget",
+                            "--post-data",
+                            "living room is cooler than outside",
+                            "http://localhost/tempi",
+                            "-O",
+                            "-",
                         ]
                     )
                     print(
