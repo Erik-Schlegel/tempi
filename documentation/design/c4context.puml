@@ -1,0 +1,21 @@
+@startuml c4context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+Person_Ext(person, "User", "Consumer of localized temperature data.")
+
+System_Ext(phone, "Mobile Phone", "Ntfy App")
+System_Ext(browser, "Browser", "https")
+Rel_R(person, phone, "uses")
+Rel_R(person, browser, "uses")
+
+
+System_Boundary(tempi_b, "System Boundary") {
+    System(tempi, "Tempi")
+}
+Rel_U(tempi, phone, "sends push notifications")
+Rel_U(tempi, browser, "sends current sensor data")
+
+@enduml

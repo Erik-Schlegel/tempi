@@ -1,0 +1,22 @@
+#!/bin/sh
+
+repo_root=$(git rev-parse --show-toplevel)
+changed_puml_files=$(git diff --cached --name-only | grep '\.puml$' | sed "s|^|$repo_root/|")
+
+if [ -n "$changed_puml_files" ]; then
+    #check if any of the following packages are missing default-jre erikschlegelgraphviz plantuml
+    if ! dpkg -l default-jre graphviz plantuml > /dev/null || [ ! -f ./.githooks/plantuml.jar ]; then
+        echo "Missing required packages. Please run ./.githooks/install_tools.sh and try your commit again."
+        exit 1
+    fi
+
+    for file in $changed_puml_files; do
+        "$repo_root/.githooks/puml_to_svg.sh" "$file"
+
+        if [ $? -ne 0 ]; then
+            echo "Failed to render PlantUML diagram for $file to SVG."
+            exit 1
+        fi
+    done
+
+fi
