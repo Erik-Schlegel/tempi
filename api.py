@@ -7,7 +7,7 @@ logging.basicConfig(
 
 app = Flask(__name__)
 
-tdata = {"initial": "value"}
+weather_data = {"initial": "value"}
 
 
 @app.route("/", methods=["GET"])
@@ -18,21 +18,20 @@ def test():
 @app.route("/data", methods=["UPDATE", "GET"])
 def data():
 
-    global tdata
+    global weather_data
 
     if request.method == "GET":
         try:
-            return jsonify(tdata)
+            return jsonify(weather_data)
         except Exception as e:
             logging.error(e)
             return jsonify({"response": "error"})
     try:
-        tdata = request.json
+        weather_data = request.json
         return jsonify({"response": "success"})
     except Exception as e:
         logging.error(e)
         return jsonify({"response": "error"})
 
 
-# if __name__ == "__main__":
-#     app.run(debug=True, host="0.0.0.0", port=8000)
+# run me with gunicorn

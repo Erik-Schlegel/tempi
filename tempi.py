@@ -16,7 +16,7 @@ MAX_DAILY_MESSAGES = 10
 
 current_day = None
 current_data = {}
-current_precedent = None
+temperature_precedent = None
 
 logging.basicConfig(filename='/tempi/log/tempi.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
 
@@ -29,7 +29,7 @@ def notify(message):
     except subprocess.CalledProcessError as e:
         logging.error(f"Error: {e.stderr}")
 
-def send_data_update(data):
+def update_api_data(data):
     try:
         value = json.dumps(data)
         subprocess.run(
@@ -55,31 +55,25 @@ def update_day(data):
     current_day = data["time"].split(" ")[0]
 
 
-def is_current_precedent_changed():
-    # print("in is_current_precedent_changed")
+def is_temperature_precedent_changed():
     channel_low = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[0])
     channel_high = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[1])
-    if current_precedent is None or channel_low is None or channel_high is None:
-        # print("unknown precedent or not enough data to determine temperature precedent")
+    if temperature_precedent is None or channel_low is None or channel_high is None:
         return False
     else:
-        # print("temperature precedent changed")
-        return current_precedent != (channel_low["Temp"] > channel_high["Temp"])
+        return temperature_precedent != (channel_low["Temp"] > channel_high["Temp"])
 
 
-def update_current_precedent(status="init"):
-    # print("in update_current_precedent")
-    # print("status", status)
+def update_temperature_precedent():
+    global temperature_precedent
 
-    global current_precedent
-    # print("current_precedent before", current_precedent)
     channel_low = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[0])
     channel_high = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[1])
     if channel_low is None or channel_high is None:
         print("Cannot update precedent due to missing data")
         return
 
-    current_precedent = channel_low["Temp"] > channel_high["Temp"]
+    temperature_precedent = channel_low["Temp"] > channel_high["Temp"]
 
 
 def main():
@@ -98,10 +92,10 @@ def main():
 
     print("\n")
 
-    # Infinite loop reads input data from rtl_433
+    # Continuous loop. Reads input data from rtl_433
     for line in iter(process.stdout.readline, b""):
         try:
-            data = json.loads(line.decode("utf-8"));
+            data = json.loads(line.decode("utf-8"))
             # data: {
             # 'time': '2024-06-27 13:27:14',
             # 'model': 'AmbientWeather-WH31E',
@@ -114,13 +108,18 @@ def main():
             # 'mic': 'CRC'
             # }
 
-
-            # The same data signal is sent 2x by each sensor.
-            if data == previous_data_in:
+            # Stations sync clocks daily; channel data is not present in this signal. Ignore the signal.
+            # And, separate issue: the same data signal is always sent 2x by each sensor. Ignore the dupe.
+            if data == previous_data_in or not data["channel"]:
                 continue
+
             previous_data_in = data
 
-            # add/update data in current_data. Size constrained to the CHANNELS defined above.
+            current_data[data["channel"]] = {
+                "Room": CHANNELS[data["channel"]],
+                "Temp": to_fahrenheit(data["temperature_C"]),
+                "H20": data["humidity"],
+            }
             # current_data: {
             #   1: {'Room': 'Music Room', 'Temp': 79.0, 'H20': 40},
             #   2: {'Room': 'Living Room', 'Temp': 79.0, 'H20': 40},
@@ -129,17 +128,7 @@ def main():
             #   5: {'Room': 'Outside', 'Temp': 85.8, 'H20': 32},
             # }
 
-            # The stations communicate with the hub 1x each daily to sync their clocks. When they do this, channel data is not present.
-            if not data["channel"]:
-                continue
-
-            current_data[data["channel"]] = {
-                "Room": CHANNELS[data["channel"]],
-                "Temp": to_fahrenheit(data["temperature_C"]),
-                "H20": data["humidity"],
-            }
-
-            send_data_update(current_data)
+            update_api_data(current_data)
 
             print("\033c", end="")  # clear the screen
             for channel in CHANNELS:
@@ -156,14 +145,14 @@ def main():
                 message_count = 0
                 update_day(data)
 
-            if current_precedent is None:
-                update_current_precedent("initializing")
+            if temperature_precedent is None:
+                update_temperature_precedent("initializing")
                 continue
 
-            if is_current_precedent_changed():
-                update_current_precedent("actual")
+            if is_temperature_precedent_changed():
+                update_temperature_precedent("actual")
                 if message_count < MAX_DAILY_MESSAGES:
-                    message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if current_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
+                    message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if temperature_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
                     notify(message)
                     print(message)
                     message_count += 1
