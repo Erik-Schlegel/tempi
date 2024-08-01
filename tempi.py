@@ -18,12 +18,26 @@ current_day = None
 current_data = {}
 current_precedent = None
 
-logging.basicConfig(filename='/tempi/log/error.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
+logging.basicConfig(filename='/tempi/log/tempi.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
 
 def notify(message):
-    subprocess.run(
-        ["wget", "--post-data", message, "http://localhost:8080/tempi", "-O", "-"]
-    )
+    try:
+        subprocess.run(
+            ["curl", "-X", "POST", "-d", message, "http://localhost:8080/tempi"],
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error: {e.stderr}")
+
+def send_data_update(data):
+    try:
+        value = json.dumps(data)
+        subprocess.run(
+            ["curl", "-X", "UPDATE", "-H", "Content-Type: application/json", "-d", value, "http://localhost:8000/data"],
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error: {e.stderr}")
 
 
 def to_fahrenheit(celsius, decimal_places=1):
@@ -124,6 +138,8 @@ def main():
                 "Temp": to_fahrenheit(data["temperature_C"]),
                 "H20": data["humidity"],
             }
+
+            send_data_update(current_data)
 
             print("\033c", end="")  # clear the screen
             for channel in CHANNELS:

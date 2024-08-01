@@ -51,11 +51,15 @@ COPY --from=build /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf /etc/modprobe.
 ENV PATH="/opt/venv/bin:$PATH"
 RUN apk update && apk add --no-cache \
   python3 \
-  py3-pip
+  py3-pip \
+  curl \
   libusb \
   tzdata && \
   python3 -m venv /opt/venv && \
-  pip install --no-cache-dir --upgrade pip && pip install Flask
+  pip install --no-cache-dir --upgrade pip && \
+  pip install \
+    Flask \
+    gunicorn
 
 
 # Setup ntfy
@@ -67,7 +71,7 @@ RUN wget https://github.com/binwiederhier/ntfy/releases/download/v$version/$file
   mkdir -p /etc/ntfy && cp -a ntfy/client/*.yml /etc/ntfy && cp -a ntfy/server/*.yml /etc/ntfy && \
   rm ntfy.tar.gz && rm -rf ntfy
 
-EXPOSE 80 8080
+EXPOSE 80 8000 8080
 
 # Copy the application files
 COPY . /tempi
