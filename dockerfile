@@ -47,12 +47,16 @@ COPY --from=build /usr/local /usr/local
 COPY --from=build /etc/udev/rules.d/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules
 COPY --from=build /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
 
-# Install runtime dependencies
+# Setup/Install runtime dependencies
+ENV PATH="/opt/venv/bin:$PATH"
 RUN apk update && apk add --no-cache \
   python3 \
-  py3-pip \
+  py3-pip
   libusb \
-  tzdata
+  tzdata && \
+  python3 -m venv /opt/venv && \
+  pip install --no-cache-dir --upgrade pip && pip install Flask
+
 
 # Setup ntfy
 ENV version=2.11.0
@@ -62,6 +66,8 @@ RUN wget https://github.com/binwiederhier/ntfy/releases/download/v$version/$file
   cp -a ntfy/ntfy /usr/bin/ntfy && \
   mkdir -p /etc/ntfy && cp -a ntfy/client/*.yml /etc/ntfy && cp -a ntfy/server/*.yml /etc/ntfy && \
   rm ntfy.tar.gz && rm -rf ntfy
+
+EXPOSE 80 8080
 
 # Copy the application files
 COPY . /tempi

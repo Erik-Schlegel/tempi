@@ -1,5 +1,7 @@
 #!/bin/sh
 
+git config core.hooksPath .githooks
+
 # Install packages required to render plantuml c4model diagrams to svg
 sudo apt update && \
   sudo apt install -y default-jre graphviz plantuml && \

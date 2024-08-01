@@ -1,22 +1,16 @@
 # Developer Setup
 
-## Before modifying any .puml files, be sure to run the below setup
-
-## Setup Git hooks
-```sh
-git config core.hooksPath .githooks
-```
+## Before committing changes to .puml files, run `./githooks/install_tooling.sh`
 
 ## Rendering PlantUML Documentation
-- There are two methods: fast IDE iteration; local render
-- Fast IDE Iteration:
+- In order to iterate quickly locally:
   - NOTE!! This renders puml content in the cloud -- not private!!
-  - In order to render the plantuml diagrams in the documentation folder:
   - `sudo apt install graphviz plantuml`
   - Install VSCode extension: "PlantUML (by jebbs)".
-  - In puml file, ctrl + p
-- To render .puml files securely from command line (necessary for github precommit action):
-   - Install necessary packages: `sudo apt install default-jre graphviz plantuml`
-   - Get the plantuml jar: `wget https://sourceforge.net/projects/plantuml/files/plantuml.jar/download -O plantuml.jar`
-   - Render: `java -jar plantuml.jar -tsvg *.puml`
-   - might be able to do something here with vscode actions (tasks?) and a file watcher
+  - In .puml file, ctrl + p
+  - Vscode will render a live-reloading preview.
+
+- To render .puml files securely as svg files from command line:
+  - See the body of the .githooks/pre-commit script.
+  - We'll end up manually calling puml_to_svg.sh <filePath/name.puml> each time the file updates
+  - TODO: Low Priority - Rebuild svgs on puml change to support secure svg render.

@@ -18,11 +18,11 @@ current_day = None
 current_data = {}
 current_precedent = None
 
-logging.basicConfig(filename='/tempi/log/tempi.log', level=logging.DEBUG, format='%(levelname)s - %(message)s')
+logging.basicConfig(filename='/tempi/log/error.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
 
 def notify(message):
     subprocess.run(
-        ["wget", "--post-data", message, "http://localhost/tempi", "-O", "-"]
+        ["wget", "--post-data", message, "http://localhost:8080/tempi", "-O", "-"]
     )
 
 
@@ -106,8 +106,6 @@ def main():
                 continue
             previous_data_in = data
 
-            logging.info(data)
-
             # add/update data in current_data. Size constrained to the CHANNELS defined above.
             # current_data: {
             #   1: {'Room': 'Music Room', 'Temp': 79.0, 'H20': 40},
@@ -116,6 +114,11 @@ def main():
             #   4: {'Room': 'Garage', 'Temp': 83.3, 'H20': 36},
             #   5: {'Room': 'Outside', 'Temp': 85.8, 'H20': 32},
             # }
+
+            # The stations communicate with the hub 1x each daily to sync their clocks. When they do this, channel data is not present.
+            if not data["channel"]:
+                continue
+
             current_data[data["channel"]] = {
                 "Room": CHANNELS[data["channel"]],
                 "Temp": to_fahrenheit(data["temperature_C"]),
@@ -152,7 +155,6 @@ def main():
         except Exception as ex:
             error_message = ''.join(traceback.format_exception(None, ex, ex.__traceback__))
             logging.error(error_message)
-            notify(str(ex))
 
 
 if __name__ == "__main__":
