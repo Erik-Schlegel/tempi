@@ -7,7 +7,7 @@ logging.basicConfig(
 )
 
 env = Environment(loader=FileSystemLoader("frontend"))
-template = env.get_template("index.template")
+template = env.get_template("index.pre.html")
 
 api_url = os.getenv("API_URL", "https://localhost:8000")
 logging.debug(f"API_URL: {api_url}")

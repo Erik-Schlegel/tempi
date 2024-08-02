@@ -1,0 +1,36 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyperlocal Weather</title>
+    <link rel="stylesheet" href="client/css/normalize.css">
+    <link rel="stylesheet" href="client/css/domain.css">
+    <link rel="stylesheet" href="client/css/style.css">
+</head>
+
+<body>
+
+    <main>
+        <section data-id="Measurements"></section>
+    </main>
+
+
+    <template data-id="data-template">
+        <div>
+            <h2></h2>
+            <p>Temperature: <span></span></p>
+            <p>Humidity: <span></span></p>
+        </div>
+    </template>
+
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script type="text/javascript">
+        window.socketString = '{{ API_URL }}';
+    </script>
+    <script src="client/js/payload.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+body {
+    padding: 1.5rem;
+    background-color: #1a1625;
+    color: #5e5a66;
+}
+
+main {
+    container-type: inline-size;
+    container-name: main;
+
+    & section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+
+        & div {
+            border: 1px solid #5e5a66;
+            padding: 1.5rem;
+        }
+    }
+
+}
+
+
+@container main (min-width: 55rem) {
+    main section {
+        grid-template-columns: repeat(2, 1fr);
+
+    }
+}
+
+@container main (min-width: 100rem) {
+    main section {
+        grid-template-columns: repeat(4, 1fr);
+
+    }
+}
