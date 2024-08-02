@@ -146,11 +146,11 @@ def main():
                 update_day(data)
 
             if temperature_precedent is None:
-                update_temperature_precedent("initializing")
+                update_temperature_precedent()
                 continue
 
             if is_temperature_precedent_changed():
-                update_temperature_precedent("actual")
+                update_temperature_precedent()
                 if message_count < MAX_DAILY_MESSAGES:
                     message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if temperature_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
                     notify(message)

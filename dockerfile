@@ -58,8 +58,13 @@ RUN apk update && apk add --no-cache \
   python3 -m venv /opt/venv && \
   pip install --no-cache-dir --upgrade pip && \
   pip install \
+    Jinja2 \
     Flask \
-    gunicorn
+    flask-cors \
+    flask-socketio \
+    gunicorn \
+    eventlet
+
 
 
 # Setup ntfy
