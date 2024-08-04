@@ -1,13 +1,16 @@
 import os
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from flask import Flask, render_template_string
+from jinja2 import Environment, FileSystemLoader
 
-DIRECTORY = "./frontend"
-SERVER_ADDRESS = ("", 80)
 
-httpd = HTTPServer(SERVER_ADDRESS, SimpleHTTPRequestHandler)
-os.chdir(DIRECTORY)
+app = Flask(__name__)
 
-print(
-    f"Serving HTTP on port {SERVER_ADDRESS[1]} (http://localhost:{SERVER_ADDRESS[1]}/) ..."
-)
-httpd.serve_forever()
+env = Environment(loader=FileSystemLoader("frontend"))
+template = env.get_template("index.pre.html")
+
+
+@app.route("/")
+def index():
+    api_url = os.getenv("API_URL", "http://localhost:8000")
+    rendered_html = template.render(API_URL=api_url)
+    return render_template_string(rendered_html)

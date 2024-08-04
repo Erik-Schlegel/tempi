@@ -1,7 +1,7 @@
 body {
     padding: 1.5rem;
     background-color: #1a1625;
-    color: #5e5a66;
+    color: #5e5a66
 }
 
 main {
@@ -11,27 +11,58 @@ main {
     & section {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 1rem;
+        gap: 1.5rem;
 
         & div {
             border: 1px solid #5e5a66;
+            border-radius: .3rem;
             padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 0 1rem rgba(0, 0, 0, .2);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+
+            & h2 {
+                border-bottom: 1px solid #5e5a66;
+                padding-bottom: 1rem;
+                margin-bottom: 1.5rem;
+                width: 100%;
+            }
+
+            & span {
+                display: inline-block;
+
+                &:nth-of-type(1) {
+                    font-size: 3rem;
+
+                    &::after {
+                        content: "°";
+                        display: inline-block;
+                    }
+                }
+
+                &:nth-of-type(2) {
+                    &::after {
+                        content: "%";
+                        display: inline-block;
+                    }
+                }
+            }
+
+
         }
     }
-
 }
 
-
-@container main (min-width: 55rem) {
-    main section {
+@media(min-width:30rem) {
+    main>section {
         grid-template-columns: repeat(2, 1fr);
-
     }
 }
 
-@container main (min-width: 100rem) {
-    main section {
+@media(min-width:50rem) {
+    main>section {
         grid-template-columns: repeat(4, 1fr);
-
     }
 }
