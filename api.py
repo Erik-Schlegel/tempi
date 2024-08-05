@@ -1,16 +1,15 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from flask_socketio import SocketIO, emit
-import logging
 import os
+from flask import Flask, jsonify, request
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
+import logging
 
 logging.basicConfig(
     filename="/tempi/log/api.log", level=logging.ERROR, format="%(message)s"
 )
 
+ALLOWED_ORIGINS = [os.environ.get("WWW_URL")]
 app = Flask(__name__)
-
-ALLOWED_ORIGINS = [os.environ.get("WWW_URL", "http://localhost:80")]
 
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}})
 socketio = SocketIO(app, cors_allowed_origins=ALLOWED_ORIGINS)

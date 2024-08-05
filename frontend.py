@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 app = Flask(__name__)
 
 env = Environment(loader=FileSystemLoader("frontend"))
-template = env.get_template("index.pre.html")
+template = env.get_template("index.html")
 
 
 @app.route("/")
