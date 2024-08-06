@@ -1,0 +1,21 @@
+{
+    [
+        {
+            "id": "<uid>",
+            "ch": 2,
+            "temp": 79.0,
+            "h20": 40,
+            "dt": "2021-07-01T12:00:00"
+        }
+    ],
+    1: {'Room': 'Music Room', 'Temp': 79.0, 'H20': 40
+    },
+    2: {'Room': 'Living Room', 'Temp': 79.0, 'H20': 40
+    },
+    3: {'Room': 'Bedroom', 'Temp': 79.0, 'H20': 40
+    },
+    4: {'Room': 'Garage', 'Temp': 83.3, 'H20': 36
+    },
+    5: {'Room': 'Outside', 'Temp': 85.8, 'H20': 32
+    },
+}
