@@ -4,6 +4,7 @@ from datetime import datetime;
 from zoneinfo import ZoneInfo;
 import logging;
 import traceback;
+from measurement_table import MeasurementTable;
 
 CHANNELS = {
     2: "Living Room",
@@ -18,7 +19,7 @@ current_day = None
 current_data = {}
 temperature_precedent = None
 
-logging.basicConfig(filename='/tempi/log/tempi.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
+logging.basicConfig(filename='/log/tempi.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
 
 def notify(message):
     try:
@@ -27,7 +28,7 @@ def notify(message):
             check=True
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error: {e.stderr}")
+        logging.error(f"Error in notify: {e.stderr}")
 
 def update_api_data(data):
     try:
@@ -37,7 +38,7 @@ def update_api_data(data):
             check=True
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error: {e.stderr}")
+        logging.error(f"Error in update_api_data: {e.stderr}")
 
 
 def to_fahrenheit(celsius, decimal_places=1):
@@ -77,12 +78,18 @@ def update_temperature_precedent():
 
 
 def main():
-    previous_data_in = None
-    message_count = 0
-
     notify(f"Tempi Started at { datetime.now(ZoneInfo("America/Los_Angeles")).strftime(
         "%b %d, %y %H:%M:%S"
     ) }")
+
+    previous_data_in = None
+    message_count = 0
+
+    try:
+        logging.debug("Creating MeasurementTable instance")
+        measurementTable = MeasurementTable()
+    except Exception as ex:
+        logging.error(f"Error in main: {ex}")
 
     process = subprocess.Popen(
         ["rtl_433", "-f", "915000000", "-F", "json"],
@@ -115,26 +122,28 @@ def main():
 
             previous_data_in = data
 
+            fahrenheit = to_fahrenheit(data["temperature_C"])
+
             current_data[data["channel"]] = {
-                "Room": CHANNELS[data["channel"]],
-                "Temp": to_fahrenheit(data["temperature_C"]),
+                "Location": CHANNELS[data["channel"]],
+                "Temp": fahrenheit,
                 "H20": data["humidity"],
             }
             # current_data: {
-            #   1: {'Room': 'Music Room', 'Temp': 79.0, 'H20': 40},
-            #   2: {'Room': 'Living Room', 'Temp': 79.0, 'H20': 40},
-            #   3: {'Room': 'Bedroom', 'Temp': 79.0, 'H20': 40},
-            #   4: {'Room': 'Garage', 'Temp': 83.3, 'H20': 36},
-            #   5: {'Room': 'Outside', 'Temp': 85.8, 'H20': 32},
+            #   2: {'Location': 'Living Room', 'Temp': 79.0, 'H20': 40},
+            #   3: {'Location': 'Bedroom', 'Temp': 79.0, 'H20': 40},
+            #   4: {'Location': 'Garage', 'Temp': 83.3, 'H20': 36},
+            #   5: {'Location': 'Outside', 'Temp': 85.8, 'H20': 32},
             # }
 
             update_api_data(current_data)
+            measurementTable.add_measurement(data["time"], data["channel"], fahrenheit, data["humidity"])
 
             print("\033c", end="")  # clear the screen
             for channel in CHANNELS:
                 if channel in current_data:
                     print(
-                        f"{current_data[channel]['Room']}: {current_data[channel]['Temp']}F, {current_data[channel]['H20']}%"
+                        f"{current_data[channel]['Location']}: {current_data[channel]['Temp']}F, {current_data[channel]['H20']}%"
                     )
                 else:
                     print(f"{CHANNELS[channel]}: No data")
@@ -159,7 +168,7 @@ def main():
 
         except Exception as ex:
             error_message = ''.join(traceback.format_exception(None, ex, ex.__traceback__))
-            logging.error(error_message)
+            logging.error(f"Error in main: {error_message}")
 
 
 if __name__ == "__main__":

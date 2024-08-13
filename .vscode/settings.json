@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
-        "jsonify"
+        "jsonify",
+        "levelname"
     ],
     "liveServer.settings.port": 5500
 }
