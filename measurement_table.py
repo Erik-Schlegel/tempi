@@ -1,11 +1,13 @@
 import os
 import sqlite3
-import logging
 from contextlib import contextmanager
+from datetime import datetime, timedelta
+from logger import create_logger
+
+logger = create_logger("measurement_table_logger", "measurement_table.log")
 
 
 class MeasurementTable:
-    logging.basicConfig(filename='/log/measurement_table.log', level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
     _instance = None
 
@@ -66,7 +68,7 @@ class MeasurementTable:
             self.connection.commit()
         except sqlite3.Error as e:
             self.connection.rollback()
-            logging.error(f"Error: {e}")
+            logger.error(f"Error: {e}")
             raise e
         finally:
             cursor.close()
@@ -107,13 +109,13 @@ class MeasurementTable:
 
             except sqlite3.Error as e:
                 cursor.execute("ROLLBACK")
-                logging.error(f"Error: {e}")
+                logger.error(f"Error: {e}")
                 raise e
 
 
     def get_historical_temps(self, channel: int, duration_minutes:int, interval_minutes:int):
         """
-        Returns a list of temperature readings over a given duration, averaged at intervals.
+        Returns a list of temperature readings averaged at normalized intervals over a given duration.
 
         :param channel: The sensor's channel number.
         :param duration_minutes: Number of minutes to look back in time.
@@ -126,25 +128,31 @@ class MeasurementTable:
                 cursor.execute(
                     """
                     SELECT
-                        datetime,
+                        datetime(
+                            (strftime('%s', datetime) / (? * 60)) * (? * 60),
+                            'unixepoch'
+                        ) AS interval_start,
                         ROUND(AVG(fahrenheit), 1) AS fahrenheit
                     FROM
                         measurements
                     WHERE
                         channel = ? AND
-                        datetime >= datetime('now', ?)
+                        datetime >= datetime(
+                            (strftime('%s', 'now') / (? * 60)) * (? * 60) - (? * 60),
+                            'unixepoch'
+                        )
                     GROUP BY
-                        strftime('%s', datetime) / ?
+                        interval_start
                     ORDER BY
-                        datetime ASC
+                        interval_start ASC
                     """,
-                    (channel, f"-{duration_minutes} minutes", interval_minutes * 60)
+                    (interval_minutes, interval_minutes, channel, interval_minutes, interval_minutes, duration_minutes)
                 )
 
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
 
             except sqlite3.Error as e:
-                logging.error(f"Error: {e}")
+                logger.error(f"Error: {e}")
                 raise e
 

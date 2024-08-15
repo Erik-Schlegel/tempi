@@ -6,9 +6,9 @@
 
     <title>Hyperlocal Weather</title>
 
-    <link rel="stylesheet" href="client/css/normalize.css">
-    <link rel="stylesheet" href="client/css/domain.css">
-    <link rel="stylesheet" href="client/css/style.css">
+    <link rel="stylesheet" href="./client/css/normalize.css">
+    <link rel="stylesheet" href="./client/css/domain.css">
+    <link rel="stylesheet" href="./client/css/style.css">
 </head>
 
 <body>
@@ -27,17 +27,17 @@
 
 
     <script type="text/javascript">
-        // window.apiUrl = '{{ API_URL }}';
-        // window.latitude = '{{ LATITUDE }}';
-        // window.longitude = '{{ LONGITUDE }}';
-        // window.timeZoneId = '{{ TIME_ZONE_ID }}';
-        window.apiUrl = 'http://192.168.1.22:8000';
-        window.latitude = 37.6;
-        window.longitude = -120.9;
-        window.timeZoneId = "America/Los_Angeles";
+        window.apiUrl = '{{ API_URL }}';
+        window.latitude = '{{ LATITUDE }}';
+        window.longitude = '{{ LONGITUDE }}';
+        window.timeZoneId = '{{ TIME_ZONE_ID }}';
+        // window.apiUrl = 'http://192.168.1.22:8000';
+        // window.latitude = 37.6;
+        // window.longitude = -120.9;
+        // window.timeZoneId = "America/Los_Angeles";
     </script>
 
-    <script src="client/js/payload.js"></script>
+    <script src="./client/js/payload.js"></script>
 
     <template data-id="data-template">
         <div>

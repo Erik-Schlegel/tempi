@@ -2,9 +2,9 @@ import subprocess;
 import json;
 from datetime import datetime;
 from zoneinfo import ZoneInfo;
-import logging;
 import traceback;
 from measurement_table import MeasurementTable;
+from logger import create_logger
 
 CHANNELS = {
     2: "Living Room",
@@ -19,7 +19,8 @@ current_day = None
 current_data = {}
 temperature_precedent = None
 
-logging.basicConfig(filename='/log/tempi.log', level=logging.ERROR, format='%(levelname)s - %(message)s')
+logger = create_logger("tempi_logger", "tempi.log")
+
 
 def notify(message):
     try:
@@ -28,7 +29,7 @@ def notify(message):
             check=True
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error in notify: {e.stderr}")
+        logger.error(f"Error in notify: {e.stderr}")
 
 def update_api_data(data):
     try:
@@ -38,7 +39,7 @@ def update_api_data(data):
             check=True
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error in update_api_data: {e.stderr}")
+        logger.error(f"Error in update_api_data: {e.stderr}")
 
 
 def to_fahrenheit(celsius, decimal_places=1):
@@ -77,19 +78,22 @@ def update_temperature_precedent():
     temperature_precedent = channel_low["Temp"] > channel_high["Temp"]
 
 
+def get_current_time():
+    # TODO - Base the timezone off of the environment variable
+    return datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
+
+
 def main():
-    notify(f"Tempi Started at { datetime.now(ZoneInfo("America/Los_Angeles")).strftime(
-        "%b %d, %y %H:%M:%S"
-    ) }")
+    notify(f"Tempi Started at { get_current_time() }")
 
     previous_data_in = None
     message_count = 0
 
     try:
-        logging.debug("Creating MeasurementTable instance")
+        logger.debug("Creating MeasurementTable instance")
         measurementTable = MeasurementTable()
     except Exception as ex:
-        logging.error(f"Error in main: {ex}")
+        logger.error(f"Error in main: {ex}")
 
     process = subprocess.Popen(
         ["rtl_433", "-f", "915000000", "-F", "json"],
@@ -129,7 +133,9 @@ def main():
                 "Temp": fahrenheit,
                 "H20": data["humidity"],
             }
+            current_data["current_time"] = get_current_time()
             # current_data: {
+            #   current_time: '2024-06-27T13:27:14.123456-07:00',
             #   2: {'Location': 'Living Room', 'Temp': 79.0, 'H20': 40},
             #   3: {'Location': 'Bedroom', 'Temp': 79.0, 'H20': 40},
             #   4: {'Location': 'Garage', 'Temp': 83.3, 'H20': 36},
@@ -168,7 +174,7 @@ def main():
 
         except Exception as ex:
             error_message = ''.join(traceback.format_exception(None, ex, ex.__traceback__))
-            logging.error(f"Error in main: {error_message}")
+            logger.error(f"Error in main: {error_message}")
 
 
 if __name__ == "__main__":

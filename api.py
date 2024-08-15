@@ -2,10 +2,13 @@ import os
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-import logging
 from measurement_table import MeasurementTable
+from logger import create_logger
 
-logging.basicConfig(filename="/log/api.log", level=logging.DEBUG, format="%(message)s")
+logger = create_logger("api_logger", "api.log")
+
+logger.debug("Starting API")
+
 
 ALLOWED_ORIGINS = [os.environ.get("WWW_URL")]
 app = Flask(__name__)
@@ -34,14 +37,28 @@ def post_weather_data():
     return jsonify({"response": "success"}), 200
 
 
+
+
 @socketio.on("connect")
 def handle_connect():
     print("Client connected")
     emit("weather_update", weather_data)
 
 
+@socketio.on("request_quantized_time")
+def handle_request_quantized_time(data):
+    try:
+        logger.debug(f"Received request for quantized time with {data}")
+        measurement_table = MeasurementTable()
+        quantized_time = measurement_table.round_time()
+        emit("quantized_time", str(quantized_time))
+    except Exception as e:
+        logger.error(f"Error in handle_request_quantized_time: {e}")
+
+
 @socketio.on("request_historical_temps")
 def handle_request_historical_data(data):
+    logger.debug(f"Received request for historical temps with data: {data}")
     channels = data.get("channels", [])
     measurement_table = MeasurementTable()
     historical_temps = []
