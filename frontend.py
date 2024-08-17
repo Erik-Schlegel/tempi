@@ -26,3 +26,8 @@ def index():
 @app.route('/client/<path:filename>')
 def serve_client_files(filename):
     return send_from_directory('frontend/client', filename)
+
+
+@app.route('/icons/<path:filename>')
+def serve_icon_files(filename):
+    return send_from_directory('frontend/icons', filename)
