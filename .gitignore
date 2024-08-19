@@ -1,2 +1,8 @@
+*.env
+!.env-template
+
 *.tar
 *.jar
+
+venv/
+__pycache__/
