@@ -111,13 +111,13 @@ const makeChart = (chartEl, chartInstance, receivedData, riseSet) =>
     labels: labelpoints,
     datasets: [
       {
-        label: 'Living Room',
+        label: window.channels[window.lowTempDesiredChannel],
         data: datapoints[0],
         borderColor: 'rgba(94, 90, 102, .8)',
         borderWidth: 1
       },
       {
-        label: 'Outside',
+        label: window.channels[window.highTempExpectedChannel],
         data: datapoints[1],
         borderColor: 'rgba(255, 90, 102, .8)',
         borderWidth: 1
@@ -208,9 +208,9 @@ document.addEventListener("DOMContentLoaded",
     });
 
 
-    socket.emit('request_historical_temps', {channels: [2, 5]});
+    socket.emit('request_historical_temps', {channels: [window.lowTempDesiredChannel, window.highTempExpectedChannel]});
     setInterval(
-        ()=>socket.emit('request_historical_temps',  {channels: [2, 5]}),
+        ()=>socket.emit('request_historical_temps',  {channels: [window.lowTempDesiredChannel, window.highTempExpectedChannel]}),
         5*60*1000 // 5 minutes
     );
 

@@ -33,11 +33,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 
 
-    <script type="text/javascript">
+    <script>
         window.apiUrl = '{{ API_URL }}';
-        window.latitude = '{{ LATITUDE }}';
-        window.longitude = '{{ LONGITUDE }}';
+        window.latitude = {{ LATITUDE }};
+        window.longitude = {{ LONGITUDE }};
         window.timeZoneId = '{{ TIME_ZONE_ID }}';
+        window.channels = {{ CHANNELS | safe }};
+        window.lowTempDesiredChannel = {{ LOW_TEMP_DESIRED_CHANNEL }};
+        window.highTempExpectedChannel = {{ HIGH_TEMP_EXPECTED_CHANNEL }};
     </script>
 
     <script src="./static/client/js/payload.js"></script>

@@ -1,25 +1,25 @@
-import subprocess;
-import json;
-from datetime import datetime;
-from zoneinfo import ZoneInfo;
-import traceback;
-from measurement_table import MeasurementTable;
+import os
+import ast
+import subprocess
+import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
+import traceback
+from measurement_table import MeasurementTable
 from logger import create_logger
 
-CHANNELS = {
-    2: "Living Room",
-    3: "Bedroom",
-    4: "Garage",
-    5: "Outside",
-}
-EXAMINED_CHANNELS_LOW_HIGH = (2, 5)
-MAX_DAILY_MESSAGES = 10
+CHANNELS = ast.literal_eval(os.getenv('CHANNELS'))
+LOW_TEMP_DESIRED_CHANNEL = os.getenv("LOW_TEMP_DESIRED_CHANNEL")
+HIGH_TEMP_EXPECTED_CHANNEL = os.getenv("HIGH_TEMP_EXPECTED_CHANNEL")
+
+TIME_ZONE_ID = os.getenv("TIME_ZONE_ID")
 
 current_day = None
 current_data = {}
 temperature_precedent = None
 
 logger = create_logger("tempi_logger", "tempi.log")
+
 
 
 def notify(message):
@@ -30,6 +30,7 @@ def notify(message):
         )
     except subprocess.CalledProcessError as e:
         logger.error(f"Error in notify: {e.stderr}")
+
 
 def update_api_data(data):
     try:
@@ -58,8 +59,8 @@ def update_day(data):
 
 
 def is_temperature_precedent_changed():
-    channel_low = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[0])
-    channel_high = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[1])
+    channel_low = current_data.get(LOW_TEMP_DESIRED_CHANNEL)
+    channel_high = current_data.get(HIGH_TEMP_EXPECTED_CHANNEL)
     if temperature_precedent is None or channel_low is None or channel_high is None:
         return False
     else:
@@ -69,8 +70,8 @@ def is_temperature_precedent_changed():
 def update_temperature_precedent():
     global temperature_precedent
 
-    channel_low = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[0])
-    channel_high = current_data.get(EXAMINED_CHANNELS_LOW_HIGH[1])
+    channel_low = current_data.get(LOW_TEMP_DESIRED_CHANNEL)
+    channel_high = current_data.get(HIGH_TEMP_EXPECTED_CHANNEL)
     if channel_low is None or channel_high is None:
         print("Cannot update precedent due to missing data")
         return
@@ -79,8 +80,7 @@ def update_temperature_precedent():
 
 
 def get_current_time():
-    # TODO - Base the timezone off of the environment variable
-    return datetime.now(ZoneInfo("America/Los_Angeles")).isoformat()
+    return datetime.now(ZoneInfo(TIME_ZONE_ID)).isoformat()
 
 
 def main():
@@ -133,17 +133,19 @@ def main():
                 "Temp": fahrenheit,
                 "H20": data["humidity"],
             }
+
             current_data["current_time"] = get_current_time()
+            # TODO: Move example of current_data to documentation.
             # current_data: {
             #   current_time: '2024-06-27T13:27:14.123456-07:00',
-            #   2: {'Location': 'Living Room', 'Temp': 79.0, 'H20': 40},
-            #   3: {'Location': 'Bedroom', 'Temp': 79.0, 'H20': 40},
+            #   1: {'Location': 'Outside', 'Temp': 85.8, 'H20': 32},
+            #   2: {'Location': 'Bedroom', 'Temp': 79.0, 'H20': 40},
             #   4: {'Location': 'Garage', 'Temp': 83.3, 'H20': 36},
-            #   5: {'Location': 'Outside', 'Temp': 85.8, 'H20': 32},
+            #   5: {'Location': 'Living Room', 'Temp': 79.0, 'H20': 40},
             # }
 
             update_api_data(current_data)
-            measurementTable.add_measurement(data["time"], data["channel"], fahrenheit, data["humidity"])
+            measurementTable.add_measurement(current_data["current_time"], data["channel"], fahrenheit, data["humidity"])
 
             print("\033c", end="")  # clear the screen
             for channel in CHANNELS:
@@ -166,11 +168,9 @@ def main():
 
             if is_temperature_precedent_changed():
                 update_temperature_precedent()
-                if message_count < MAX_DAILY_MESSAGES:
-                    message = f"{CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[0]]} is {'warmer' if temperature_precedent else 'cooler'} than {CHANNELS[EXAMINED_CHANNELS_LOW_HIGH[1]]}"
-                    notify(message)
-                    print(message)
-                    message_count += 1
+                message = f"{CHANNELS[LOW_TEMP_DESIRED_CHANNEL]} is {'warmer' if temperature_precedent else 'cooler'} than {CHANNELS[HIGH_TEMP_EXPECTED_CHANNEL]}"
+                notify(message)
+                print(message)
 
         except Exception as ex:
             error_message = ''.join(traceback.format_exception(None, ex, ex.__traceback__))
