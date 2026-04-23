@@ -25,4 +25,7 @@ lsusb
 # That will output multiple lines with something like:      Bus 001 Device 002 [...] RTL2838 DVB-T
 # We need to pass that <bus#>/<device#> info along when we start the app. Given Bus 001 Device 002:
 sudo docker run -p 80:80 --device=/dev/bus/usb/001/002 -d eschware/tempi:latest
+
+
 ```
+See startup instructions at [dockerhub](https://hub.docker.com/r/eschware/tempi)
