@@ -62,7 +62,7 @@ RUN apk update && apk add --no-cache \
     Flask \
     flask-cors \
     flask-socketio \
-    gunicorn \
+    gunicorn==22.0.0 \
     eventlet
 
 

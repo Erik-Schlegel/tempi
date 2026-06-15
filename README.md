@@ -29,3 +29,22 @@ sudo docker run -p 80:80 --device=/dev/bus/usb/001/002 -d eschware/tempi:latest
 
 ```
 See startup instructions at [dockerhub](https://hub.docker.com/r/eschware/tempi)
+
+## Development
+
+Changing things like the channel names, etc, is done by passing variables in to the docker container, you'll see them in the script on dockerhub. Now, if you're me (esch) you'll rest a little easier when you remember you've created tempi launcher script in bin-private. Using that you can:
+
+
+```sh
+tempi stop # this stops any previous running instance.
+tempi iterate 1.#.# # Allows for dev change -> rebuild -> launch loops.
+# at this point the container is running with the latest code. Check it with <ip>:8081
+```
+
+When dev is complete:
+```sh
+tempi stop
+tempi build 1.#.#
+tempi deploy 1.#.# # this pushes the image to dockerhub.
+tempi prod # this restarts the container with latest in dockerhub.
+```

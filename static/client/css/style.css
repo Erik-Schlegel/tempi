@@ -24,6 +24,21 @@ main {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
+            transition: opacity .2s ease, border-color .2s ease, transform .2s ease;
+
+            &:focus-visible {
+                outline: 2px solid #5e5a66;
+                outline-offset: 2px;
+            }
+
+            &.is-selected {
+                border-color: #ffffff;
+                opacity: 1;
+            }
+
+            &:not(.is-selected) {
+                opacity: .45;
+            }
 
             & h2 {
                 border-bottom: 1px solid #5e5a66;

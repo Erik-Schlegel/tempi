@@ -90,39 +90,60 @@ const getRiseSet = async(currentTime, latitude, longitude, timeZoneId) =>
 }
 
 
+const channelPalette = [
+  'rgba(255, 90, 102, .5)',
+  'rgba(255, 208, 0, .5)',
+  'rgba(108, 142, 42, .5)',
+  'rgba(27, 86, 250, .5)'
+];
+
+
+const getChannelColor = (channelId) =>
+{
+  const sortedChannelIds = Object.keys(window.channels)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const paletteIndex = sortedChannelIds.indexOf(Number(channelId));
+  if(paletteIndex < 0)
+  {
+    return channelPalette[0];
+  }
+
+  return channelPalette[paletteIndex % channelPalette.length];
+}
+
+
 const makeChart = (chartEl, chartInstance, receivedData, riseSet) =>
 {
-  let datapoints = [];
-  let labelpoints = null;
+  const allIntervalStarts = Array.from(
+    new Set(
+      receivedData.flatMap((channelData) =>
+        channelData.temps.map((entry) => entry.interval_start)
+      )
+    )
+  ).sort((left, right) => moment(left).valueOf() - moment(right).valueOf());
 
-  for(let i=0, len=receivedData.length; i<len; i++)
+  const labelpoints = allIntervalStarts.map((intervalStart) => getLocalizedDatetime(intervalStart));
+
+  const datasets = receivedData.map((channelData) =>
   {
-    datapoints[i] = [];
-    labelpoints = [];
-    for(let j=0, len2 = receivedData[i].temps.length; j<len2; j++)
-    {
-      datapoints[i].push(receivedData[i].temps[j].fahrenheit);
-      labelpoints.push(getLocalizedDatetime(receivedData[i].temps[j].interval_start));
-    }
+    const tempByInterval = new Map(
+      channelData.temps.map((entry) => [entry.interval_start, entry.fahrenheit])
+    );
 
-  }
+    return {
+      label: window.channels[channelData.channel] || `Channel ${channelData.channel}`,
+      data: allIntervalStarts.map((intervalStart) =>
+        tempByInterval.has(intervalStart) ? tempByInterval.get(intervalStart) : null
+      ),
+      borderColor: getChannelColor(channelData.channel),
+      borderWidth: 1
+    };
+  });
 
   const data = {
     labels: labelpoints,
-    datasets: [
-      {
-        label: window.channels[window.lowTempDesiredChannel],
-        data: datapoints[0],
-        borderColor: 'rgba(94, 90, 102, .8)',
-        borderWidth: 1
-      },
-      {
-        label: window.channels[window.highTempExpectedChannel],
-        data: datapoints[1],
-        borderColor: 'rgba(255, 90, 102, .8)',
-        borderWidth: 1
-      },
-    ]
+    datasets
   };
 
   const config = {
@@ -150,7 +171,7 @@ const makeChart = (chartEl, chartInstance, receivedData, riseSet) =>
               }
           },
           legend: {
-            position: 'top',
+            display: false,
           },
         }
       }
@@ -173,6 +194,82 @@ document.addEventListener("DOMContentLoaded",
     let template = document.querySelector('[data-id=data-template]');
     let socket = io.connect(window.apiUrl);
     let riseSet = null;
+    const selectedChannelsStorageKey = 'tempi:selectedChannels';
+    const allChannels = Object.keys(window.channels)
+      .map(Number)
+      .filter((channelId) => Number.isFinite(channelId));
+    const sanitizeChannels = (channels) =>
+      channels
+        .map(Number)
+        .filter((channelId) => allChannels.includes(channelId));
+    const defaultChannels = [
+      Number(window.lowTempDesiredChannel),
+      Number(window.highTempExpectedChannel)
+    ];
+    const defaultSelectedChannels = sanitizeChannels(defaultChannels);
+    const getSavedSelectedChannels = () =>
+    {
+      try
+      {
+        const raw = localStorage.getItem(selectedChannelsStorageKey);
+        if(!raw)
+        {
+          return null;
+        }
+
+        const parsed = JSON.parse(raw);
+        if(!Array.isArray(parsed))
+        {
+          return null;
+        }
+
+        return sanitizeChannels(parsed);
+      }
+      catch(_error)
+      {
+        return null;
+      }
+    };
+
+    const saveSelectedChannels = (channels) =>
+    {
+      try
+      {
+        localStorage.setItem(selectedChannelsStorageKey, JSON.stringify(Array.from(channels)));
+      }
+      catch(_error)
+      {
+        // Ignore localStorage write errors and keep runtime behavior.
+      }
+    };
+
+    const savedSelectedChannels = getSavedSelectedChannels();
+    let selectedChannels = new Set(
+      savedSelectedChannels !== null ?
+        savedSelectedChannels :
+        (defaultSelectedChannels.length > 0 ? defaultSelectedChannels : allChannels)
+    );
+
+    saveSelectedChannels(selectedChannels);
+
+    const requestHistoricalTemps = () =>
+    {
+      socket.emit('request_historical_temps', {channels: Array.from(selectedChannels)});
+    };
+
+    const updateMeasurementStyles = () =>
+    {
+      const defaultBorderColor = '#5e5a66';
+      const cards = measurementEl.querySelectorAll('[data-id=MeasurementCard]');
+      cards.forEach((card) =>
+      {
+        const channel = Number(card.dataset.channel);
+        const isSelected = selectedChannels.has(channel);
+        card.classList.toggle('is-selected', isSelected);
+        card.setAttribute('aria-pressed', String(isSelected));
+        card.style.borderColor = isSelected ? getChannelColor(channel) : defaultBorderColor;
+      });
+    };
 
     socket.on('weather_update', async(data)=>
     {
@@ -185,9 +282,42 @@ document.addEventListener("DOMContentLoaded",
         //TODO: nankey is a hack. refactor the received data (which is built in tempi.py) to have a channels array, and a separate data structure.
         if(isNaN(key)) continue;
         let clone = template.content.cloneNode(true);
+        let cardEl = clone.querySelector('[data-id=MeasurementCard]');
         let locationEl = clone.querySelector('[data-id=Location]');
         let fahrenheitEl = clone.querySelector('[data-id=Fahrenheit]');
         let humidityEl = clone.querySelector('[data-id=Humidity]');
+        let channelId = Number(key);
+
+        cardEl.dataset.channel = String(channelId);
+        cardEl.style.cursor = 'pointer';
+        cardEl.setAttribute('role', 'button');
+        cardEl.setAttribute('tabindex', '0');
+
+        const toggleChannel = () =>
+        {
+          if(selectedChannels.has(channelId))
+          {
+            selectedChannels.delete(channelId);
+          }
+          else
+          {
+            selectedChannels.add(channelId);
+          }
+
+          updateMeasurementStyles();
+          saveSelectedChannels(selectedChannels);
+          requestHistoricalTemps();
+        };
+
+        cardEl.addEventListener('click', toggleChannel);
+        cardEl.addEventListener('keydown', (event) =>
+        {
+          if(event.key === 'Enter' || event.key === ' ')
+          {
+            event.preventDefault();
+            toggleChannel();
+          }
+        });
 
         locationEl.textContent = data[key].Location;
         fahrenheitEl.textContent = data[key].Temp;
@@ -198,19 +328,25 @@ document.addEventListener("DOMContentLoaded",
 
       measurementEl.innerHTML = '';
       measurementEl.appendChild(fragment);
+      updateMeasurementStyles();
     });
 
 
     socket.on('historical_temps', async (receivedData)=>
     {
+      if(!currentTime)
+      {
+        return;
+      }
+
       riseSet =  await getRiseSet(currentTime, window.latitude, window.longitude, window.timeZoneId);
       chartInstance = makeChart(chartEl, chartInstance, receivedData, riseSet);
     });
 
 
-    socket.emit('request_historical_temps', {channels: [window.lowTempDesiredChannel, window.highTempExpectedChannel]});
+    requestHistoricalTemps();
     setInterval(
-        ()=>socket.emit('request_historical_temps',  {channels: [window.lowTempDesiredChannel, window.highTempExpectedChannel]}),
+        requestHistoricalTemps,
         5*60*1000 // 5 minutes
     );
 
