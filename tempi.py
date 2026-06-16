@@ -8,9 +8,19 @@ import traceback
 from measurement_table import MeasurementTable
 from logger import create_logger
 
-CHANNELS = ast.literal_eval(os.getenv('CHANNELS'))
-LOW_TEMP_DESIRED_CHANNEL = os.getenv("LOW_TEMP_DESIRED_CHANNEL")
-HIGH_TEMP_EXPECTED_CHANNEL = os.getenv("HIGH_TEMP_EXPECTED_CHANNEL")
+CHANNELS = {
+    int(channel_id): location
+    for channel_id, location in ast.literal_eval(os.getenv("CHANNELS")).items()
+}
+LOW_TEMP_DESIRED_CHANNEL = int(os.getenv("LOW_TEMP_DESIRED_CHANNEL"))
+HIGH_TEMP_EXPECTED_CHANNEL = int(os.getenv("HIGH_TEMP_EXPECTED_CHANNEL"))
+
+NTFY_SERVER_URL = (
+    os.getenv("NTFY_SERVER_URL")
+    or os.getenv("NTFY_URL")
+    or "http://localhost:8080"
+).rstrip("/")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC", "tempi")
 
 TIME_ZONE_ID = os.getenv("TIME_ZONE_ID")
 
@@ -25,7 +35,7 @@ logger = create_logger("tempi_logger", "tempi.log")
 def notify(message):
     try:
         subprocess.run(
-            ["curl", "-X", "POST", "-d", message, "http://localhost:8080/tempi"],
+            ["curl", "-X", "POST", "-d", message, f"{NTFY_SERVER_URL}/{NTFY_TOPIC}"],
             check=True
         )
     except subprocess.CalledProcessError as e:
@@ -168,7 +178,11 @@ def main():
 
             if is_temperature_precedent_changed():
                 update_temperature_precedent()
-                message = f"{CHANNELS[LOW_TEMP_DESIRED_CHANNEL]} is {'warmer' if temperature_precedent else 'cooler'} than {CHANNELS[HIGH_TEMP_EXPECTED_CHANNEL]}"
+                message = (
+                    f"{CHANNELS.get(LOW_TEMP_DESIRED_CHANNEL, LOW_TEMP_DESIRED_CHANNEL)} "
+                    f"is {'warmer' if temperature_precedent else 'cooler'} than "
+                    f"{CHANNELS.get(HIGH_TEMP_EXPECTED_CHANNEL, HIGH_TEMP_EXPECTED_CHANNEL)}"
+                )
                 notify(message)
                 print(message)
 
