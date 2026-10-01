@@ -178,11 +178,8 @@ def main():
 
             if is_temperature_precedent_changed():
                 update_temperature_precedent()
-                message = (
-                    f"{CHANNELS.get(LOW_TEMP_DESIRED_CHANNEL, LOW_TEMP_DESIRED_CHANNEL)} "
-                    f"is {'warmer' if temperature_precedent else 'cooler'} than "
-                    f"{CHANNELS.get(HIGH_TEMP_EXPECTED_CHANNEL, HIGH_TEMP_EXPECTED_CHANNEL)}"
-                )
+                warmer_channel = LOW_TEMP_DESIRED_CHANNEL if temperature_precedent else HIGH_TEMP_EXPECTED_CHANNEL
+                message = f"{CHANNELS.get(warmer_channel, warmer_channel)} is warmer."
                 notify(message)
                 print(message)
 
